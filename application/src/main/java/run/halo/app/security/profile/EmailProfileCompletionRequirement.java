@@ -26,7 +26,7 @@ class EmailProfileCompletionRequirement implements ProfileCompletionRequirement 
     public Mono<ProfileCompletionStep> evaluate(String username) {
         return systemConfigFetcher
                 .fetch(SystemSetting.User.GROUP, SystemSetting.User.class)
-                .filter(SystemSetting.User::isMustVerifyEmailOnRegistration)
+                .filter(setting -> setting.isAllowRegistration() && setting.isMustVerifyEmailOnRegistration())
                 .flatMap(setting -> userService.getUser(username))
                 .filter(user -> StringUtils.isBlank(user.getSpec().getEmail())
                         || !user.getSpec().isEmailVerified())

@@ -44,11 +44,27 @@ class ProfileCompletionFlowTest {
     void shouldSkipDisabledEmailRequirementBeforeLoadingUser() {
         var flow = flow(new EmailProfileCompletionRequirement(systemConfigFetcher, userService));
         var setting = new SystemSetting.User();
+        setting.setAllowRegistration(true);
         setting.setMustVerifyEmailOnRegistration(false);
         when(systemConfigFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class))
                 .thenReturn(Mono.just(setting));
         when(userService.getUser(USERNAME))
                 .thenReturn(Mono.error(new AssertionError("Disabled requirements must not load the user")));
+
+        StepVerifier.create(flow.findNext(USERNAME)).verifyComplete();
+
+        verify(userService, never()).getUser(USERNAME);
+    }
+
+    @Test
+    void shouldSkipEmailRequirementWhenRegistrationIsClosed() {
+        var flow = flow(new EmailProfileCompletionRequirement(systemConfigFetcher, userService));
+        var setting = new SystemSetting.User();
+        setting.setAllowRegistration(false);
+        setting.setMustVerifyEmailOnRegistration(true);
+        when(systemConfigFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class))
+                .thenReturn(Mono.just(setting));
+        when(userService.getUser(USERNAME)).thenReturn(Mono.just(new User()));
 
         StepVerifier.create(flow.findNext(USERNAME)).verifyComplete();
 
@@ -98,6 +114,7 @@ class ProfileCompletionFlowTest {
         var user = new User();
         user.getSpec().setEmailVerified(false);
         var setting = new SystemSetting.User();
+        setting.setAllowRegistration(true);
         setting.setMustVerifyEmailOnRegistration(true);
 
         when(systemConfigFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class))
@@ -118,6 +135,7 @@ class ProfileCompletionFlowTest {
         var user = new User();
         user.getSpec().setEmailVerified(true);
         var setting = new SystemSetting.User();
+        setting.setAllowRegistration(true);
         setting.setMustVerifyEmailOnRegistration(true);
         when(systemConfigFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class))
                 .thenReturn(Mono.just(setting));
@@ -141,6 +159,7 @@ class ProfileCompletionFlowTest {
 
         user.getSpec().setEmail("alice@example.com");
         user.getSpec().setEmailVerified(true);
+        setting.setAllowRegistration(true);
         setting.setMustVerifyEmailOnRegistration(true);
         when(systemConfigFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class))
                 .thenReturn(Mono.just(setting));
